@@ -65,7 +65,7 @@ impl ExecutionPlan {
             }
         }
 
-        let topo_order = toposort(&graph, None).map_err(|_| SchedulerError::CycleDetected)?;
+        let _topo_order = toposort(&graph, None).map_err(|_| SchedulerError::CycleDetected)?;
 
         let depths = compute_node_depths(&graph, &node_indices, tasks);
 
@@ -86,7 +86,7 @@ impl ExecutionPlan {
 
 fn compute_node_depths(
     graph: &DiGraph<String, ()>,
-    node_indices: &HashMap<String, NodeIndex>,
+    _node_indices: &HashMap<String, NodeIndex>,
     tasks: &[TaskDefinition],
 ) -> HashMap<String, usize> {
     let mut depths = HashMap::new();
