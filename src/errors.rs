@@ -21,4 +21,10 @@ impl IntoResponse for AppError {
     }
 }
 
+impl From<crate::services::scheduler::SchedulerError> for AppError {
+    fn from(value: crate::services::scheduler::SchedulerError) -> Self {
+        AppError::SchedulerError(value.to_string())
+    }
+}
+
 pub type AppResult<T> = Result<T, AppError>;
