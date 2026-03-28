@@ -1,5 +1,6 @@
 mod errors;
 mod models;
+mod routes;
 mod services;
 mod state;
 
