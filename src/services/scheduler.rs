@@ -117,3 +117,184 @@ fn compute_node_depths(
 
     depths
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_linear_dag() {
+        let tasks = vec![
+            TaskDefinition {
+                id: "a".into(),
+                depends_on: vec![],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "b".into(),
+                depends_on: vec!["a".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "c".into(),
+                depends_on: vec!["b".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+        ];
+
+        let plan = ExecutionPlan::build(&tasks).unwrap();
+        assert_eq!(plan.levels.len(), 3);
+        assert_eq!(plan.levels[0], vec!["a"]);
+        assert_eq!(plan.levels[1], vec!["b"]);
+        assert_eq!(plan.levels[2], vec!["c"]);
+    }
+
+    #[test]
+    fn test_parallel_dag() {
+        let tasks = vec![
+            TaskDefinition {
+                id: "a".into(),
+                depends_on: vec![],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "b".into(),
+                depends_on: vec![],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "c".into(),
+                depends_on: vec!["a".into(), "b".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+        ];
+
+        let plan = ExecutionPlan::build(&tasks).unwrap();
+        assert_eq!(plan.levels.len(), 2);
+        assert_eq!(plan.levels[0], vec!["a", "b"]);
+        assert_eq!(plan.levels[1], vec!["c"]);
+    }
+
+    #[test]
+    fn test_cycle_detection() {
+        let tasks = vec![
+            TaskDefinition {
+                id: "a".into(),
+                depends_on: vec!["b".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "b".into(),
+                depends_on: vec!["a".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+        ];
+
+        let result = ExecutionPlan::build(&tasks);
+        assert!(matches!(result, Err(SchedulerError::CycleDetected)));
+    }
+
+    #[test]
+    fn test_missing_dependency() {
+        let tasks = vec![TaskDefinition {
+            id: "a".into(),
+            depends_on: vec!["nonexistent".into()],
+            command: "test".into(),
+            params: Default::default(),
+        }];
+
+        let result = ExecutionPlan::build(&tasks);
+        assert!(matches!(
+            result,
+            Err(SchedulerError::MissingDependency(_, _))
+        ));
+    }
+
+    #[test]
+    fn test_duplicate_task_id() {
+        let tasks = vec![
+            TaskDefinition {
+                id: "a".into(),
+                depends_on: vec![],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "a".into(),
+                depends_on: vec![],
+                command: "test".into(),
+                params: Default::default(),
+            },
+        ];
+
+        let result = ExecutionPlan::build(&tasks);
+        assert!(matches!(result, Err(SchedulerError::DuplicateTaskId(_))));
+    }
+
+    #[test]
+    fn test_complex_dag() {
+        // checkout -> [lint, unit_test] -> build -> integ_test -> deploy -> notify
+        let tasks = vec![
+            TaskDefinition {
+                id: "checkout".into(),
+                depends_on: vec![],
+                command: "build".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "lint".into(),
+                depends_on: vec!["checkout".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "unit_test".into(),
+                depends_on: vec!["checkout".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "build".into(),
+                depends_on: vec!["lint".into(), "unit_test".into()],
+                command: "build".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "integ_test".into(),
+                depends_on: vec!["build".into()],
+                command: "test".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "deploy".into(),
+                depends_on: vec!["integ_test".into()],
+                command: "deploy".into(),
+                params: Default::default(),
+            },
+            TaskDefinition {
+                id: "notify".into(),
+                depends_on: vec!["deploy".into()],
+                command: "send_email".into(),
+                params: Default::default(),
+            },
+        ];
+
+        let plan = ExecutionPlan::build(&tasks).unwrap();
+
+        assert_eq!(plan.levels.len(), 6);
+        assert_eq!(plan.levels[0], vec!["checkout"]);
+        assert_eq!(plan.levels[1], vec!["lint", "unit_test"]);
+        assert_eq!(plan.levels[2], vec!["build"]);
+        assert_eq!(plan.levels[3], vec!["integ_test"]);
+        assert_eq!(plan.levels[4], vec!["deploy"]);
+        assert_eq!(plan.levels[5], vec!["notify"]);
+    }
+}
