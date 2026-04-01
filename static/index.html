@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini DAG Runner</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Mini DAG Runner</h1>
+                <span class="subtitle">Task Dependency Orchestrator</span>
+            </div>
+            <div class="header-right">
+                <span class="status-indicator" id="serverStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connected</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Left Panel: DAG List -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>DAGs</h2>
+                    <button class="btn btn-primary" onclick="openSubmitModal()">
+                        + New DAG
+                    </button>
+                </div>
+                <div class="dag-list" id="dagList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </aside>
+
+            <!-- Center: DAG Visualization -->
+            <section class="content">
+                <div class="content-header" id="dagHeader">
+                    <h2>Select a DAG to visualize</h2>
+                </div>
+                <div class="visualization-container">
+                    <div class="dag-visualization" id="dagVisualization">
+                        <div class="empty-state">
+                            <div class="empty-icon">📊</div>
+                            <p>Select a DAG from the list or create a new one</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Event Log -->
+            <aside class="event-panel">
+                <div class="panel-header">
+                    <h2>Live Events</h2>
+                    <button class="btn btn-small" onclick="clearEvents()">Clear</button>
+                </div>
+                <div class="event-log" id="eventLog">
+                    <div class="empty-state small">
+                        <p>Events will appear here</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Submit DAG Modal -->
+    <div class="modal" id="submitModal">
+        <div class="modal-backdrop" onclick="closeSubmitModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Submit New DAG</h2>
+                <button class="modal-close" onclick="closeSubmitModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="dagName">DAG Name (optional)</label>
+                    <input type="text" id="dagName" placeholder="My Pipeline">
+                </div>
+                <div class="form-group">
+                    <label for="dagJson">DAG Definition (JSON)</label>
+                    <textarea id="dagJson" rows="15" placeholder='{
+  "name": "My Pipeline",
+  "tasks": [
+    {"id": "task1", "depends_on": [], "command": "build"},
+    {"id": "task2", "depends_on": ["task1"], "command": "test"}
+  ]
+}'></textarea>
+                </div>
+                <div class="template-buttons">
+                    <span>Templates:</span>
+                    <button class="btn btn-small" onclick="loadTemplate('simple')">Simple</button>
+                    <button class="btn btn-small" onclick="loadTemplate('parallel')">Parallel</button>
+                    <button class="btn btn-small" onclick="loadTemplate('ci')">CI/CD</button>
+                    <button class="btn btn-small" onclick="loadTemplate('failure')">With Failure</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSubmitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitDag()">Submit DAG</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div class="modal" id="taskModal">
+        <div class="modal-backdrop" onclick="closeTaskModal()"></div>
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Task Details</h2>
+                <button class="modal-close" onclick="closeTaskModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="taskModalBody">
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/templates.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

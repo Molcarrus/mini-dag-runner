@@ -24,6 +24,12 @@ pub async fn execute_dag(state: AppState, dag_id: String, plan: ExecutionPlan) {
         }
     };
 
+    {
+        if let Some(mut dag) = state.dags.get_mut(&dag_id) {
+            dag.status = DagStatus::Running;
+        }
+    }
+
     let _ = event_sender.send(DagEvent::DagStarted {
         dag_id: dag_id.clone(),
         total_tasls: plan.levels.iter().map(|level| level.len()).sum::<usize>(),
