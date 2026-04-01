@@ -2,7 +2,11 @@ use axum::{
     Router,
     routing::{delete, get, post},
 };
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    cors::CorsLayer,
+    services::{ServeDir, ServeFile},
+    trace::TraceLayer,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::state::AppState;
@@ -25,13 +29,19 @@ async fn main() {
 
     let state = AppState::new();
 
+    let serve_dir = ServeDir::new("static").not_found_service(ServeFile::new("static/index.html"));
+
     let app = Router::new()
-        .route("/dags", post(routes::submit::submit_dag))
-        .route("/dags", get(routes::list::list_dags))
-        .route("/dags/{id}/status", get(routes::status::get_dag_status))
-        .route("/dags/{id}/stream", get(routes::stream::stream_dag_events))
-        .route("/dags/{id}", delete(routes::delete::delete_dag))
-        .route("/health", get(health_check))
+        .route("/api/dags", post(routes::submit::submit_dag))
+        .route("/api/dags", get(routes::list::list_dags))
+        .route("/api/dags/{id}/status", get(routes::status::get_dag_status))
+        .route(
+            "/api/dags/{id}/stream",
+            get(routes::stream::stream_dag_events),
+        )
+        .route("/api/dags/{id}", delete(routes::delete::delete_dag))
+        .route("/api/health", get(health_check))
+        .fallback_service(serve_dir)
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .with_state(state);
@@ -42,6 +52,7 @@ async fn main() {
         "Mini DAG Runner listening on {}",
         listener.local_addr().unwrap()
     );
+    tracing::info!("Web UI available at http://localhost:3000");
 
     axum::serve(listener, app).await.unwrap();
 }
